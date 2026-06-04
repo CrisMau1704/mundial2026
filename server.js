@@ -9,7 +9,7 @@ app.use(express.static('public'));
 
 // ============ CONEXIÓN A POSTGRESQL ============
 const pool = new Pool({
-    connectionString: process.env.INTERNAL_DATABASE_URL,
+    connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
 });
 
