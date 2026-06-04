@@ -7,8 +7,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// ============ CONEXIÓN CORRECTA A POSTGRESQL EN RENDER ============
-// Render proporciona DATABASE_URL automáticamente para servicios internos
+// ============ CONEXIÓN A POSTGRESQL CON SSL CORRECTO ============
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
@@ -18,10 +17,9 @@ if (!databaseUrl) {
 
 console.log('✅ Conectando a PostgreSQL...');
 
-// Configuración SIN SSL explícito (Render lo maneja automáticamente)
 const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: false,  // Esto evita el error 'key in require'
+    ssl: { rejectUnauthorized: false },  // Esto resuelve el error SSL/TLS required
     connectionTimeoutMillis: 10000,
 });
 
