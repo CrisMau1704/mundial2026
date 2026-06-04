@@ -1,36 +1,43 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
-
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-// Servir archivos estáticos
 app.use(express.static('public'));
 
-// ============ CONEXIÓN A MySQL EN CPANEL ============
+// ============ CONEXIÓN A MYSQL EN CPANEL ============
 const db = mysql.createConnection({
-    host: '69.61.33.107',
-    user: 'alianzab_administrador',
-    password: 'Alianza-2026*',
-    database: 'alianzab_mundial2026',
-    port: 3306
+    host: process.env.DB_HOST || '69.61.33.107',
+    user: process.env.DB_USER || 'alianzab_administrador',
+    password: process.env.DB_PASSWORD || 'Alianza-2026*',
+    database: process.env.DB_NAME || 'alianzab_mundial2026',
+    port: 3306,
+    connectTimeout: 10000,
+    // Para evitar desconexiones en Render
+    keepAliveInitialDelay: 10000,
+    enableKeepAlive: true
 });
 
 db.connect((err) => {
     if (err) {
         console.error('❌ Error conectando a MySQL:', err.message);
+        console.error('Código:', err.code);
+        console.log('\n📌 Verificá que:');
+        console.log('   1. El hosting permita conexiones externas');
+        console.log('   2. Las credenciales sean correctas');
+        console.log('   3. La base de datos "alianzab_mundial2026" exista');
     } else {
         console.log('✅ Conectado a MySQL en cPanel');
     }
 });
 
-// ============ API ENDPOINTS ============
+// ============ API PARA USUARIOS ============
 app.get('/api/usuarios', (req, res) => {
     db.query('SELECT id, nombre FROM usuarios ORDER BY nombre', (err, results) => {
         if (err) {
+            console.error('Error en /api/usuarios:', err);
             res.status(500).json({ error: err.message });
             return;
         }
@@ -38,6 +45,7 @@ app.get('/api/usuarios', (req, res) => {
     });
 });
 
+// ============ API PARA PARTIDOS ============
 app.get('/api/partidos', (req, res) => {
     const sql = `
         SELECT 
@@ -56,6 +64,7 @@ app.get('/api/partidos', (req, res) => {
     `;
     db.query(sql, (err, results) => {
         if (err) {
+            console.error('Error en /api/partidos:', err);
             res.status(500).json({ error: err.message });
             return;
         }
@@ -63,14 +72,20 @@ app.get('/api/partidos', (req, res) => {
     });
 });
 
+// ============ API PARA APUESTAS DE UN USUARIO ============
 app.get('/api/apuestas/:usuarioId', (req, res) => {
     const sql = `
-        SELECT partido_id, equipo_apostado, puntos, fecha_apuesta
+        SELECT 
+            partido_id,
+            equipo_apostado,
+            puntos,
+            fecha_apuesta
         FROM apuestas
         WHERE usuario_id = ?
     `;
     db.query(sql, [req.params.usuarioId], (err, results) => {
         if (err) {
+            console.error('Error en /api/apuestas:', err);
             res.status(500).json({ error: err.message });
             return;
         }
@@ -82,10 +97,18 @@ app.get('/api/apuestas/:usuarioId', (req, res) => {
     });
 });
 
+// ============ GUARDAR APUESTA ============
 app.post('/api/apostar', (req, res) => {
     const { usuario_id, partido_id, equipo_apostado } = req.body;
     
-    const checkSql = `SELECT fecha, estado FROM partidos WHERE id = ?`;
+    // Validar datos
+    if (!usuario_id || !partido_id || !equipo_apostado) {
+        res.status(400).json({ error: 'Faltan datos requeridos' });
+        return;
+    }
+    
+    // Verificar si el partido ya comenzó
+    const checkSql = `SELECT fecha, estado, ganador_real FROM partidos WHERE id = ?`;
     
     db.query(checkSql, [partido_id], (err, results) => {
         if (err) {
@@ -93,16 +116,30 @@ app.post('/api/apostar', (req, res) => {
             return;
         }
         
+        if (results.length === 0) {
+            res.status(404).json({ error: 'Partido no encontrado' });
+            return;
+        }
+        
         const partido = results[0];
+        
+        // Si el partido ya tiene ganador, no se puede apostar
+        if (partido.ganador_real) {
+            res.status(400).json({ error: 'El partido ya finalizó, no se puede apostar' });
+            return;
+        }
+        
         const fechaPartido = new Date(partido.fecha);
         const ahora = new Date();
         
-        if (ahora > fechaPartido && partido.estado !== 'pendiente') {
-            return res.status(400).json({ 
-                error: 'El partido ya comenzó o terminó, no se puede modificar la apuesta' 
+        if (ahora > fechaPartido) {
+            res.status(400).json({ 
+                error: 'El partido ya comenzó, no se puede apostar' 
             });
+            return;
         }
         
+        // Guardar o actualizar apuesta (INSERT o UPDATE)
         const upsertSql = `
             INSERT INTO apuestas (usuario_id, partido_id, equipo_apostado, fecha_apuesta)
             VALUES (?, ?, ?, NOW())
@@ -113,14 +150,16 @@ app.post('/api/apostar', (req, res) => {
         
         db.query(upsertSql, [usuario_id, partido_id, equipo_apostado], (err) => {
             if (err) {
+                console.error('Error guardando apuesta:', err);
                 res.status(500).json({ error: err.message });
                 return;
             }
-            res.json({ success: true });
+            res.json({ success: true, message: 'Apuesta guardada exitosamente' });
         });
     });
 });
 
+// ============ RANKING ============
 app.get('/api/ranking', (req, res) => {
     const sql = `
         SELECT 
@@ -136,6 +175,7 @@ app.get('/api/ranking', (req, res) => {
     `;
     db.query(sql, (err, results) => {
         if (err) {
+            console.error('Error en /api/ranking:', err);
             res.status(500).json({ error: err.message });
             return;
         }
@@ -143,6 +183,7 @@ app.get('/api/ranking', (req, res) => {
     });
 });
 
+// ============ PANEL ADMIN - OBTENER PARTIDOS ============
 app.get('/api/admin/partidos', (req, res) => {
     const sql = `
         SELECT 
@@ -151,14 +192,17 @@ app.get('/api/admin/partidos', (req, res) => {
             e2.nombre as visitante,
             p.fecha,
             p.ganador_real,
+            p.resultado_local,
+            p.resultado_visitante,
             p.estado
         FROM partidos p
         JOIN equipos e1 ON p.equipo_local_id = e1.id
         JOIN equipos e2 ON p.equipo_visitante_id = e2.id
-        ORDER BY p.id
+        ORDER BY p.fecha, p.id
     `;
     db.query(sql, (err, results) => {
         if (err) {
+            console.error('Error en /api/admin/partidos:', err);
             res.status(500).json({ error: err.message });
             return;
         }
@@ -166,36 +210,69 @@ app.get('/api/admin/partidos', (req, res) => {
     });
 });
 
+// ============ PANEL ADMIN - CARGAR RESULTADO ============
 app.post('/api/admin/resultado', (req, res) => {
-    const { partido_id, ganador_real } = req.body;
+    const { partido_id, ganador_real, goles_local, goles_visitante } = req.body;
     
+    if (!partido_id || !ganador_real) {
+        res.status(400).json({ error: 'Faltan datos requeridos' });
+        return;
+    }
+    
+    // Actualizar el partido
     const updatePartido = `
         UPDATE partidos 
-        SET ganador_real = ?, estado = 'jugado'
+        SET ganador_real = ?, 
+            resultado_local = ?, 
+            resultado_visitante = ?,
+            estado = 'jugado'
         WHERE id = ?
     `;
     
-    db.query(updatePartido, [ganador_real, partido_id], (err) => {
+    db.query(updatePartido, [ganador_real, goles_local || 0, goles_visitante || 0, partido_id], (err) => {
         if (err) {
+            console.error('Error actualizando partido:', err);
             res.status(500).json({ error: err.message });
             return;
         }
         
+        // Actualizar puntos de las apuestas
         const updatePuntos = `
             UPDATE apuestas 
-            SET puntos = CASE WHEN equipo_apostado = ? THEN 1 ELSE 0 END
+            SET puntos = CASE 
+                WHEN equipo_apostado = ? THEN 1 
+                ELSE 0 
+            END
             WHERE partido_id = ?
         `;
         
         db.query(updatePuntos, [ganador_real, partido_id], (err) => {
             if (err) {
+                console.error('Error actualizando puntos:', err);
                 res.status(500).json({ error: err.message });
                 return;
             }
-            res.json({ success: true });
+            res.json({ success: true, message: 'Resultado cargado y puntos actualizados' });
         });
     });
 });
 
-// Para Vercel, exportamos la app
-module.exports = app;
+// ============ RUTA DE PRUEBA PARA VERIFICAR CONEXIÓN ============
+app.get('/api/health', (req, res) => {
+    db.query('SELECT 1', (err) => {
+        if (err) {
+            res.status(500).json({ status: 'error', message: err.message });
+        } else {
+            res.json({ status: 'ok', message: 'Base de datos conectada' });
+        }
+    });
+});
+
+// ============ INICIAR SERVIDOR ============
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor en http://localhost:${PORT}`);
+    console.log(`📱 App disponible en https://mundial2026.onrender.com`);
+    console.log(`🔧 Panel Admin: /admin.html`);
+    console.log(`✅ Servidor listo para aceptar conexiones`);
+});

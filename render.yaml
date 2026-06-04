@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: mundial2026
+    runtime: node
+    repo: https://github.com/CrisMau1704/mundial2026
+    plan: free
+    envVars:
+      - key: DB_HOST
+        value: 69.61.33.107
+      - key: DB_USER
+        value: alianzab_administrador
+      - key: DB_PASSWORD
+        value: Alianza-2026*
+      - key: DB_NAME
+        value: alianzab_mundial2026
+      - key: PORT
+        value: 3000
