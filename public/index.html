@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Mi Mundial 2026 - Apuestas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .usuario-selector {
+            margin-bottom: 20px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            background: white;
+            font-weight: bold;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .grupo {
+            background: white;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .grupo-titulo {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .partido {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 16px;
+            transition: background 0.2s;
+        }
+        
+        .fecha {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+        
+        .equipos {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        
+        .opciones {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-apuesta {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .btn-apuesta:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-apuesta.selected-local {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .btn-apuesta.selected-empate {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+        
+        .btn-apuesta.selected-visitante {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+        
+        .btn-apuesta.disabled, .btn-apuesta.bloqueado {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .resultado-real {
+            margin-top: 12px;
+            padding: 8px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .mi-apuesta {
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff3e0;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #e65100;
+            font-weight: bold;
+        }
+        
+        .apuesta-bloqueada {
+            margin-top: 8px;
+            padding: 8px;
+            background: #ffebee;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: center;
+            color: #c62828;
+            font-weight: bold;
+        }
+        
+        .puntos {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .puntos.acierto {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        
+        .puntos.error {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+        
+        .acciones {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-ranking {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .btn-actualizar {
+            background: #9C27B0;
+            color: white;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .cerrar-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .ranking-table th,
+        .ranking-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .ranking-table th {
+            background: #667eea;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        
+        .cargando {
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+        
+        .usuario-actual {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .fecha-limite {
+            font-size: 11px;
+            color: #f44336;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+            
+            .btn-apuesta {
+                font-size: 12px;
+                padding: 10px;
+            }
+            
+            .equipos {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="usuario-selector">
+                <label style="font-weight: bold; display: block; margin-bottom: 8px;">👤 Seleccioná tu nombre:</label>
+                <select id="usuarioSelect">
+                    <option value="">Cargando usuarios...</option>
+                </select>
+            </div>
+            <div class="stats" id="stats" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalApuestas">0</div>
+                    <div class="stat-label">Apuestas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalPuntos">0</div>
+                    <div class="stat-label">Puntos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalAciertos">0</div>
+                    <div class="stat-label">Aciertos</div>
+                </div>
+            </div>
+            <div id="usuarioNombre" class="usuario-actual" style="display: none;"></div>
+        </div>
+        
+        <div id="fixtureContainer">
+            <div class="cargando">
+                <div>📱 Cargando fixture...</div>
+            </div>
+        </div>
+        
+        <div class="acciones">
+            <button class="btn-ranking" onclick="verRanking()">🏆 Ranking</button>
+            <button class="btn-actualizar" onclick="cargarTodo()">🔄 Actualizar</button>
+        </div>
+    </div>
+    
+    <div id="rankingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏆 Ranking Mundial 2026</h2>
+                <span class="cerrar-modal" onclick="cerrarRanking()">&times;</span>
+            </div>
+            <div id="rankingContainer">
+                <div class="cargando">Cargando ranking...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let usuarioActual = null;
+        let partidosGlobal = [];
+        let apuestasUsuario = {};
+        
+        async function cargarUsuarios() {
+            try {
+                const res = await fetch('/api/usuarios');
+                const usuarios = await res.json();
+                
+                const select = document.getElementById('usuarioSelect');
+                select.innerHTML = '<option value="">Seleccioná tu nombre...</option>';
+                
+                usuarios.forEach(usuario => {
+                    select.innerHTML += `<option value="${usuario.id}">${usuario.nombre}</option>`;
+                });
+                
+                const savedUser = localStorage.getItem('usuarioId');
+                if (savedUser) {
+                    select.value = savedUser;
+                    cambiarUsuario();
+                }
+            } catch (error) {
+                console.error('Error cargando usuarios:', error);
+            }
+        }
+        
+        async function cambiarUsuario() {
+            const select = document.getElementById('usuarioSelect');
+            const usuarioId = select.value;
+            
+            if (!usuarioId) {
+                document.getElementById('stats').style.display = 'none';
+                document.getElementById('usuarioNombre').style.display = 'none';
+                document.getElementById('fixtureContainer').innerHTML = '<div class="cargando">👤 Seleccioná un usuario para empezar</div>';
+                return;
+            }
+            
+            usuarioActual = parseInt(usuarioId);
+            localStorage.setItem('usuarioId', usuarioActual);
+            
+            const nombreUsuario = select.options[select.selectedIndex].text;
+            document.getElementById('usuarioNombre').textContent = `✅ Apostando como: ${nombreUsuario}`;
+            document.getElementById('usuarioNombre').style.display = 'block';
+            
+            await cargarTodo();
+        }
+        
+        async function cargarTodo() {
+            if (!usuarioActual) return;
+            
+            await Promise.all([
+                cargarPartidos(),
+                cargarApuestas(),
+                actualizarEstadisticas()
+            ]);
+        }
+        
+        async function cargarPartidos() {
+            try {
+                const res = await fetch('/api/partidos');
+                partidosGlobal = await res.json();
+                renderizarFixture();
+            } catch (error) {
+                console.error('Error cargando partidos:', error);
+            }
+        }
+        
+        async function cargarApuestas() {
+            try {
+                const res = await fetch(`/api/apuestas/${usuarioActual}`);
+                apuestasUsuario = await res.json();
+                renderizarFixture();
+            } catch (error) {
+                console.error('Error cargando apuestas:', error);
+            }
+        }
+        
+        function verificarPuedeApostar(partido) {
+            // Si ya apostó, NO puede cambiar
+            if (apuestasUsuario[partido.id] && apuestasUsuario[partido.id].equipo_apostado) {
+                return false;
+            }
+            
+            // Si el partido ya comenzó, NO puede apostar
+            const fechaPartido = new Date(partido.fecha);
+            const ahora = new Date();
+            if (ahora > fechaPartido) {
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function renderizarFixture() {
+            if (!partidosGlobal.length) return;
+            
+            const grupos = {};
+            partidosGlobal.forEach(partido => {
+                if (!grupos[partido.grupo]) {
+                    grupos[partido.grupo] = [];
+                }
+                grupos[partido.grupo].push(partido);
+            });
+            
+            const container = document.getElementById('fixtureContainer');
+            container.innerHTML = '';
+            
+            for (const [grupo, partidos] of Object.entries(grupos)) {
+                const grupoDiv = document.createElement('div');
+                grupoDiv.className = 'grupo';
+                grupoDiv.innerHTML = `<div class="grupo-titulo">Grupo ${grupo}</div>`;
+                
+                const partidosDiv = document.createElement('div');
+                
+                partidos.forEach(partido => {
+                    const apuesta = apuestasUsuario[partido.id];
+                    const equipoApostado = apuesta ? apuesta.equipo_apostado : null;
+                    const puntos = apuesta ? apuesta.puntos : 0;
+                    const partidoJugado = partido.ganador_real !== null && partido.ganador_real !== undefined;
+                    const puedeApostar = verificarPuedeApostar(partido);
+                    const yaAposto = equipoApostado !== null && equipoApostado !== undefined;
+                    
+                    const partidoDiv = document.createElement('div');
+                    partidoDiv.className = 'partido';
+                    partidoDiv.id = `partido-${partido.id}`;
+                    
+                    let html = `
+                        <div class="fecha">📅 ${formatearFecha(partido.fecha)}</div>
+                        <div class="equipos">${partido.local} vs ${partido.visitante}</div>
+                        <div class="opciones">
+                            <button class="btn-apuesta" onclick="apostar(${partido.id}, 'local')" ${!puedeApostar ? 'disabled' : ''}>
+                                🏆 ${partido.local}
+                            </button>
+                            <button class="btn-apuesta" onclick="apostar(${partido.id}, 'empate')" ${!puedeApostar ? 'disabled' : ''}>
+                                🤝 Empate
+                            </button>
+                            <button class="btn-apuesta" onclick="apostar(${partido.id}, 'visitante')" ${!puedeApostar ? 'disabled' : ''}>
+                                🏆 ${partido.visitante}
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Si YA APOSTÓ, mostrar mensaje de bloqueo
+                    if (yaAposto && !partidoJugado) {
+                        html += `<div class="mi-apuesta">🔒 APUESTA BLOQUEADA - Apostaste a: ${equipoApostado}</div>`;
+                        html += `<div class="apuesta-bloqueada">⚠️ No puedes cambiar tu apuesta. Quedó fija para este partido.</div>`;
+                    } else if (equipoApostado && !partidoJugado) {
+                        html += `<div class="mi-apuesta">📝 Tu apuesta: ${equipoApostado}</div>`;
+                    }
+                    
+                    // Mostrar resultado REAL solo si el partido ya se jugó
+                    if (partidoJugado) {
+                        html += `<div class="resultado-real">✅ Resultado real: ${partido.ganador_real}</div>`;
+                        if (puntos > 0) {
+                            html += `<div class="puntos acierto">🎯 ¡ACERTASTE! +1 punto</div>`;
+                        } else if (yaAposto) {
+                            html += `<div class="puntos error">❌ No acertaste - Perdiste la apuesta</div>`;
+                        }
+                    } else {
+                        if (!yaAposto && puedeApostar) {
+                            html += `<div class="resultado-real">⏳ Partido pendiente - Podés apostar</div>`;
+                        } else if (!puedeApostar && !yaAposto) {
+                            html += `<div class="resultado-real">⏰ Partido comenzó - Ya no se puede apostar</div>`;
+                        }
+                    }
+                    
+                    partidoDiv.innerHTML = html;
+                    partidosDiv.appendChild(partidoDiv);
+                    
+                    // Marcar apuesta seleccionada visualmente
+                    if (equipoApostado && !partidoJugado) {
+                        const btns = partidoDiv.querySelectorAll('.btn-apuesta');
+                        if (equipoApostado === partido.local) {
+                            btns[0].classList.add('selected-local');
+                        } else if (equipoApostado === 'Empate') {
+                            btns[1].classList.add('selected-empate');
+                        } else if (equipoApostado === partido.visitante) {
+                            btns[2].classList.add('selected-visitante');
+                        }
+                        
+                        // Agregar clase bloqueado a todos los botones
+                        btns.forEach(btn => {
+                            btn.classList.add('bloqueado');
+                        });
+                    }
+                    
+                    // Si el partido ya está jugado, deshabilitar botones
+                    if (partidoJugado) {
+                        const btns = partidoDiv.querySelectorAll('.btn-apuesta');
+                        btns.forEach(btn => {
+                            btn.classList.add('bloqueado');
+                        });
+                    }
+                });
+                
+                grupoDiv.appendChild(partidosDiv);
+                container.appendChild(grupoDiv);
+            }
+        }
+        
+        async function apostar(partidoId, tipo) {
+            if (!usuarioActual) {
+                alert('Primero seleccioná tu nombre');
+                return;
+            }
+            
+            const partido = partidosGlobal.find(p => p.id === partidoId);
+            
+            // VERIFICACIONES ANTES DE APOSTAR
+            // 1. Verificar si ya apostó antes
+            if (apuestasUsuario[partidoId] && apuestasUsuario[partidoId].equipo_apostado) {
+                alert('❌ Ya realizaste una apuesta para este partido. No puedes cambiarla.');
+                return;
+            }
+            
+            // 2. Verificar si el partido ya comenzó
+            const fechaPartido = new Date(partido.fecha);
+            const ahora = new Date();
+            
+            if (ahora > fechaPartido) {
+                alert('⏰ El partido ya comenzó o terminó. No puedes apostar.');
+                return;
+            }
+            
+            let equipoApostado = '';
+            if (tipo === 'local') equipoApostado = partido.local;
+            else if (tipo === 'empate') equipoApostado = 'Empate';
+            else equipoApostado = partido.visitante;
+            
+            // Confirmar apuesta
+            const confirmar = confirm(`⚽ ¿Confirmás tu apuesta?\n\n${partido.local} vs ${partido.visitante}\n\nTu predicción: ${equipoApostado}\n\n⚠️ Una vez confirmada, NO podrás cambiarla.`);
+            
+            if (!confirmar) {
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/apostar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario_id: usuarioActual,
+                        partido_id: partidoId,
+                        equipo_apostado: equipoApostado
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    await cargarApuestas();
+                    await actualizarEstadisticas();
+                    mostrarNotificacion(`🔒 APUESTA CONFIRMADA Y BLOQUEADA: ${partido.local} vs ${partido.visitante} → ${equipoApostado}`);
+                }
+            } catch (error) {
+                console.error('Error al apostar:', error);
+                alert('Error al guardar la apuesta');
+            }
+        }
+        
+        async function actualizarEstadisticas() {
+            try {
+                const res = await fetch(`/api/ranking`);
+                const ranking = await res.json();
+                
+                const miUsuario = ranking.find(u => u.id === usuarioActual);
+                
+                if (miUsuario) {
+                    document.getElementById('stats').style.display = 'grid';
+                    document.getElementById('totalApuestas').textContent = miUsuario.total_apostados || 0;
+                    document.getElementById('totalPuntos').textContent = miUsuario.puntos || 0;
+                    document.getElementById('totalAciertos').textContent = miUsuario.aciertos || 0;
+                }
+            } catch (error) {
+                console.error('Error actualizando estadísticas:', error);
+            }
+        }
+        
+        async function verRanking() {
+            try {
+                const res = await fetch('/api/ranking');
+                const ranking = await res.json();
+                
+                const container = document.getElementById('rankingContainer');
+                container.innerHTML = `
+                    <table class="ranking-table">
+                        <thead>
+                            <tr>
+                                <th>Posición</th>
+                                <th>Usuario</th>
+                                <th>Puntos</th>
+                                <th>Aciertos</th>
+                                <th>Efectividad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ranking.map((user, index) => {
+                                const efectividad = user.total_apostados > 0 
+                                    ? ((user.aciertos / user.total_apostados) * 100).toFixed(1) 
+                                    : 0;
+                                return `
+                                    <tr ${user.id === usuarioActual ? 'style="background: #e3f2fd; font-weight: bold;"' : ''}>
+                                        <td>${index + 1}°</td>
+                                        <td>${user.nombre}</td>
+                                        <td><strong>${user.puntos}</strong></td>
+                                        <td>${user.aciertos}/${user.total_apostados}</td>
+                                        <td>${efectividad}%</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+                
+                document.getElementById('rankingModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error cargando ranking:', error);
+            }
+        }
+        
+        function cerrarRanking() {
+            document.getElementById('rankingModal').style.display = 'none';
+        }
+        
+        function formatearFecha(fecha) {
+            if (!fecha) return 'Fecha por definir';
+            const date = new Date(fecha);
+            return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function mostrarNotificacion(mensaje) {
+            const notif = document.createElement('div');
+            notif.textContent = mensaje;
+            notif.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 50px;
+                z-index: 1000;
+                font-size: 14px;
+                white-space: nowrap;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            `;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 3000);
+        }
+        
+        document.getElementById('usuarioSelect').addEventListener('change', cambiarUsuario);
+        
+        cargarUsuarios();
+        
+        setInterval(() => {
+            if (usuarioActual) {
+                cargarApuestas();
+                actualizarEstadisticas();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

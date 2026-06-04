@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Mundial 2026</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .partido {
+            background: #16213e;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+        select, input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        .login {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        input {
+            width: 200px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="loginPanel" class="login">
+        <h2>🔐 Panel de Administrador</h2>
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Entrar</button>
+    </div>
+    
+    <div id="adminPanel" style="display:none;">
+        <h2>⚽ Cargar Resultados de Partidos</h2>
+        <div id="partidosList"></div>
+    </div>
+    
+    <script>
+        async function login() {
+            const password = document.getElementById('password').value;
+            if (password === 'admin123') {  // Cambiá esta contraseña
+                document.getElementById('loginPanel').style.display = 'none';
+                document.getElementById('adminPanel').style.display = 'block';
+                cargarPartidos();
+            } else {
+                alert('Contraseña incorrecta');
+            }
+        }
+        
+        async function cargarPartidos() {
+            const res = await fetch('/api/admin/partidos');
+            const partidos = await res.json();
+            
+            const container = document.getElementById('partidosList');
+            container.innerHTML = '';
+            
+            partidos.forEach(partido => {
+                container.innerHTML += `
+                    <div class="partido">
+                        <strong>${partido.local} vs ${partido.visitante}</strong><br>
+                        📅 ${partido.fecha}<br>
+                        <select id="ganador_${partido.id}">
+                            <option value="">Seleccionar ganador...</option>
+                            <option value="${partido.local}" ${partido.ganador_real === partido.local ? 'selected' : ''}>${partido.local}</option>
+                            <option value="Empate" ${partido.ganador_real === 'Empate' ? 'selected' : ''}>Empate</option>
+                            <option value="${partido.visitante}" ${partido.ganador_real === partido.visitante ? 'selected' : ''}>${partido.visitante}</option>
+                        </select>
+                        <input type="number" id="goles_local_${partido.id}" placeholder="Goles local" value="${partido.resultado_local || ''}" style="width:100px">
+                        <input type="number" id="goles_visit_${partido.id}" placeholder="Goles visitante" value="${partido.resultado_visitante || ''}" style="width:100px">
+                        <button onclick="cargarResultado(${partido.id})">Guardar Resultado</button>
+                        <span style="margin-left:10px;">${partido.estado === 'jugado' ? '✅ Partido finalizado' : '⏳ Pendiente'}</span>
+                    </div>
+                `;
+            });
+        }
+        
+        async function cargarResultado(partidoId) {
+            const ganador = document.getElementById(`ganador_${partidoId}`).value;
+            const golesLocal = document.getElementById(`goles_local_${partidoId}`).value;
+            const golesVisit = document.getElementById(`goles_visit_${partidoId}`).value;
+            
+            if (!ganador) {
+                alert('Seleccioná un ganador');
+                return;
+            }
+            
+            await fetch('/api/admin/resultado', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    partido_id: partidoId,
+                    ganador_real: ganador,
+                    goles_local: golesLocal || 0,
+                    goles_visitante: golesVisit || 0
+                })
+            });
+            
+            alert('✅ Resultado guardado - Puntos actualizados');
+            cargarPartidos();
+        }
+    </script>
+</body>
+</html>
