@@ -1,0 +1,4 @@
+node_modules/
+.env
+mundial2026.db
+.DS_Store
