@@ -7,56 +7,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// ============ CONEXIÓN SIMPLIFICADA A POSTGRESQL ============
+// ============ CONEXIÓN SIMPLIFICADA ============
 const databaseUrl = process.env.DATABASE_URL || process.env.INTERNAL_DATABASE_URL;
 
 if (!databaseUrl) {
-    console.error('❌ ERROR CRÍTICO: No se encontró DATABASE_URL');
-    console.error('Variables disponibles:', Object.keys(process.env));
+    console.error('❌ ERROR: No se encontró DATABASE_URL');
     process.exit(1);
 }
 
 console.log('✅ Conectando a PostgreSQL...');
 
-// Configuración mínima sin SSL explícito
 const pool = new Pool({
     connectionString: databaseUrl,
 });
 
-// Verificar conexión
-pool.connect((err, client, release) => {
-    if (err) {
-        console.error('❌ Error conectando a PostgreSQL:', err.message);
-        process.exit(1);
-    } else {
-        console.log('✅ Conectado exitosamente a PostgreSQL');
-        release();
-    }
-});
-
-// ============ HEALTH CHECK ============
+// Health check
 app.get('/api/health', async (req, res) => {
     try {
-        const result = await pool.query('SELECT NOW() as time');
-        res.json({ status: 'ok', time: result.rows[0].time });
+        await pool.query('SELECT 1');
+        res.json({ status: 'ok' });
     } catch (err) {
-        console.error('Health check error:', err);
         res.status(500).json({ status: 'error', message: err.message });
     }
 });
 
-// ============ USUARIOS ============
+// Usuarios
 app.get('/api/usuarios', async (req, res) => {
     try {
         const result = await pool.query('SELECT id, nombre FROM usuarios ORDER BY nombre');
         res.json(result.rows);
     } catch (err) {
-        console.error('Error en /api/usuarios:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ============ PARTIDOS ============
+// Partidos
 app.get('/api/partidos', async (req, res) => {
     try {
         const sql = `
@@ -77,12 +62,11 @@ app.get('/api/partidos', async (req, res) => {
         const result = await pool.query(sql);
         res.json(result.rows);
     } catch (err) {
-        console.error('Error en /api/partidos:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ============ APUESTAS ============
+// Apuestas de usuario
 app.get('/api/apuestas/:usuarioId', async (req, res) => {
     try {
         const result = await pool.query(
@@ -93,12 +77,11 @@ app.get('/api/apuestas/:usuarioId', async (req, res) => {
         result.rows.forEach(a => { apuestasMap[a.partido_id] = a; });
         res.json(apuestasMap);
     } catch (err) {
-        console.error('Error en /api/apuestas:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ============ GUARDAR APUESTA ============
+// Guardar apuesta
 app.post('/api/apostar', async (req, res) => {
     const { usuario_id, partido_id, equipo_apostado } = req.body;
     
@@ -116,12 +99,11 @@ app.post('/api/apostar', async (req, res) => {
         );
         res.json({ success: true });
     } catch (err) {
-        console.error('Error guardando apuesta:', err);
         res.status(500).json({ error: err.message });
     }
 });
 
-// ============ RANKING ============
+// Ranking
 app.get('/api/ranking', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -140,7 +122,7 @@ app.get('/api/ranking', async (req, res) => {
     }
 });
 
-// ============ ADMIN ============
+// Admin - Obtener partidos
 app.get('/api/admin/partidos', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -157,6 +139,7 @@ app.get('/api/admin/partidos', async (req, res) => {
     }
 });
 
+// Admin - Cargar resultado
 app.post('/api/admin/resultado', async (req, res) => {
     const { partido_id, ganador_real } = req.body;
     
@@ -184,7 +167,6 @@ app.post('/api/admin/resultado', async (req, res) => {
     }
 });
 
-// ============ INICIAR SERVIDOR ============
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
