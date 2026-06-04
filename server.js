@@ -22,7 +22,6 @@ console.log(`📡 URL: ${databaseUrl.substring(0, 50)}...`);
 
 const pool = new Pool({
     connectionString: databaseUrl,
-    ssl: { rejectUnauthorized: false },
     connectionTimeoutMillis: 10000,
     idleTimeoutMillis: 30000,
 });
